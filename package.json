@@ -1,0 +1,26 @@
+{
+  "name": "distributed-job-queue",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev:api": "ts-node apps/api/src/app.ts",
+    "dev:worker": "ts-node apps/worker/src/worker.ts",
+    "dev": "concurrently -n API,WORKER -c blue,green \"npm run dev:api\" \"npm run dev:worker\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "express": "^5.2.1",
+    "redis": "^6.2.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.2",
+    "concurrently": "^10.0.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^7.0.2"
+  }
+}
