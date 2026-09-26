@@ -3,9 +3,12 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "ts-node": {
+    "esm": true
+  },
   "scripts": {
-    "dev:api": "ts-node apps/api/src/app.ts",
-    "dev:worker": "ts-node apps/worker/src/worker.ts",
+    "dev:api": "node --loader ts-node/esm apps/api/src/app.ts",
+    "dev:worker": "node --loader ts-node/esm apps/worker/src/worker.ts",
     "dev": "concurrently -n API,WORKER -c blue,green \"npm run dev:api\" \"npm run dev:worker\""
   },
   "keywords": [],
