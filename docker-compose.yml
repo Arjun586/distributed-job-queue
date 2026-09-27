@@ -1,4 +1,16 @@
 services:
+
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: job_queue
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      
   redis:
     image: redis:7-alpine
     ports:
@@ -10,7 +22,8 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - REDIS_URL=redis://redis:6379
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/job_queue
     depends_on:
       - redis
     volumes:
@@ -21,9 +34,13 @@ services:
     build: .
     command: npm run dev:worker
     environment:
-      - REDIS_URL=redis://redis:6379
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/job_queue
     depends_on:
       - redis
     volumes:
       - .:/app
       - /app/node_modules
+
+volumes:
+  pgdata:

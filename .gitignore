@@ -34,3 +34,4 @@ prisma/dev.db
 # Misc
 coverage/
 .env.test
+/generated/prisma
