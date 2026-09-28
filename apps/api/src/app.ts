@@ -9,13 +9,16 @@ const app = express();
 app.use(express.json());
 
 app.post("/api/jobs", async (req, res) => {
-    const job = { id: randomUUID(), 
-        type: req.body.type, 
-        payload: req.body.payload 
+    const job = {
+        id: randomUUID(),
+        type: req.body.type,
+        payload: req.body.payload,
+        attempts: 0,
+        maxAttempts: req.body.maxAttempts ?? 3,
     };
 
     await prisma.job.create({
-        data: { id: job.id, type: job.type, payload: job.payload },
+        data: { id: job.id, type: job.type, payload: job.payload, attempts: job.attempts, maxAttempts: job.maxAttempts },
     });
 
     await pushJob(job);

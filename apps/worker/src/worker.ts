@@ -1,5 +1,5 @@
 import {connectRedis} from "../../../packages/redis/src/client.js"
-import { ensureGroup, popJob, ackJob } from "../../../packages/queue/src/index.js";
+import { ensureGroup, popJob, ackJob, pushJob, pushToDLQ } from "../../../packages/queue/src/index.js";
 import { randomUUID } from "crypto";
 import { prisma, connectDatabase } from "../../../packages/database/src/client.js";
 
@@ -8,10 +8,21 @@ const consumerName = `worker-${randomUUID()}`;
 
 async function processJob(job: any) {
     console.log("Processing job:", job);
-    await new Promise((r) => setTimeout(r, 5000));
-    return { handledBy: consumerName };
+    await new Promise((r) => setTimeout(r, 3000));
+    throw new Error("Test failure");
 }
 
+const sleep = (ms: number) =>
+    new Promise(resolve => setTimeout(resolve, ms));
+
+
+function getRetryDelay(attempt: number) {
+    const baseDelay = 1000;
+    const exponentialDelay = baseDelay * 2 ** (attempt - 1);
+    const jitter = Math.random() * 500;
+
+    return exponentialDelay + jitter;
+}
 
 async function startWorker(){
     await connectRedis();
@@ -29,7 +40,10 @@ async function startWorker(){
 
         await prisma.job.update({
             where: { id: job.id },
-            data: { status: "PROCESSING" },
+            data: { 
+                status: "PROCESSING",
+                attempts: { increment: 1 },
+            },
         });
         
 
@@ -40,10 +54,39 @@ async function startWorker(){
                 data: { status: "COMPLETED", result: output },
             });
         } catch (err: any) {
+            const nextAttempt = job.attempts + 1;
+            const shouldRetry = nextAttempt < job.maxAttempts;
+            console.log(
+                `Job ${job.id} ${shouldRetry ? "will retry" : "has reached max attempts and FAILED"}`
+            );
             await prisma.job.update({
                 where: { id: job.id },
-                data: { status: "FAILED", error: err.message },
+                data: {
+                    status: shouldRetry ? "RETRYING" : "FAILED",
+                    error: err.message,
+                },
             });
+
+            if (!shouldRetry) {
+                await pushToDLQ(job, err.message);
+            }
+
+            await ackJob(streamId);
+
+            if (shouldRetry) {
+                const delay = getRetryDelay(nextAttempt);
+
+                console.log(`Retrying job ${job.id} in ${Math.round(delay)}ms`);
+
+                await sleep(delay);
+
+                await pushJob({
+                    ...job,
+                    attempts: nextAttempt,
+                });
+            }
+
+            continue;
         }
         
         await ackJob(streamId);

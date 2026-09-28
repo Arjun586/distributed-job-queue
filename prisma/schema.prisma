@@ -10,8 +10,10 @@ datasource db {
 enum JobStatus {
   PENDING
   PROCESSING
+  RETRYING
   COMPLETED
   FAILED
+  DEAD_LETTER
 }
 
 model Job {
@@ -21,6 +23,8 @@ model Job {
   status    JobStatus @default(PENDING)
   result    Json?
   error     String?
+  attempts    Int @default(0)
+  maxAttempts Int @default(5)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }

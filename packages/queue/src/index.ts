@@ -2,7 +2,7 @@ import {redisClient} from "../../redis/src/client.js"
 
 const STREAM_KEY = "job_stream";
 const GROUP_NAME = "job_workers";
-
+const DLQ_STREAM_KEY = "job_dlq";
 
 // call once at startup — creates the consumer group
 export async function ensureGroup() {
@@ -19,6 +19,19 @@ export async function ensureGroup() {
 
 export async function pushJob(job: any) {
     await redisClient.xAdd(STREAM_KEY, "*", { data: JSON.stringify(job) });
+}
+
+export async function pushToDLQ(
+    job: any,
+    error: string,
+) {
+    await redisClient.xAdd(DLQ_STREAM_KEY, "*", {
+        data: JSON.stringify({
+            job,
+            error,
+            movedAt: new Date().toISOString(),
+        }),
+    });
 }
 
 
