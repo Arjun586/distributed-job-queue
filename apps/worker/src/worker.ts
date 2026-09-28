@@ -2,14 +2,17 @@ import {connectRedis} from "../../../packages/redis/src/client.js"
 import { ensureGroup, popJob, ackJob, pushJob, pushToDLQ } from "../../../packages/queue/src/index.js";
 import { randomUUID } from "crypto";
 import { prisma, connectDatabase } from "../../../packages/database/src/client.js";
+import {isRetryableError, RetryableError,} from "./errors.js";
 
 const consumerName = `worker-${randomUUID()}`;
 
 
 async function processJob(job: any) {
     console.log("Processing job:", job);
-    await new Promise((r) => setTimeout(r, 3000));
-    throw new Error("Test failure");
+
+    await new Promise((r) => setTimeout(r, 1000));
+
+    throw new Error("Invalid payload");
 }
 
 const sleep = (ms: number) =>
@@ -54,8 +57,12 @@ async function startWorker(){
                 data: { status: "COMPLETED", result: output },
             });
         } catch (err: any) {
+
+            const retryable = isRetryableError(err);
             const nextAttempt = job.attempts + 1;
-            const shouldRetry = nextAttempt < job.maxAttempts;
+
+            const shouldRetry = retryable && nextAttempt < job.maxAttempts;
+
             console.log(
                 `Job ${job.id} ${shouldRetry ? "will retry" : "has reached max attempts and FAILED"}`
             );
