@@ -62,13 +62,17 @@ async function startWorker(){
             await prisma.job.update({
                 where: { id: job.id },
                 data: {
-                    status: shouldRetry ? "RETRYING" : "FAILED",
+                    status: shouldRetry ? "RETRYING" : "DEAD_LETTER",
                     error: err.message,
                 },
             });
 
             if (!shouldRetry) {
-                await pushToDLQ(job, err.message);
+                const dlqId = await pushToDLQ(job, err.message);
+
+                console.log(
+                    `Job ${job.id} moved to DLQ | streamId=${dlqId} | attempts=${nextAttempt}`
+                );
             }
 
             await ackJob(streamId);

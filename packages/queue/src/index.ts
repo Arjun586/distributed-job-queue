@@ -25,13 +25,15 @@ export async function pushToDLQ(
     job: any,
     error: string,
 ) {
-    await redisClient.xAdd(DLQ_STREAM_KEY, "*", {
+    const streamId = await redisClient.xAdd(DLQ_STREAM_KEY, "*", {
         data: JSON.stringify({
             job,
             error,
             movedAt: new Date().toISOString(),
         }),
     });
+
+    return streamId;
 }
 
 

@@ -14,7 +14,7 @@ app.post("/api/jobs", async (req, res) => {
         type: req.body.type,
         payload: req.body.payload,
         attempts: 0,
-        maxAttempts: req.body.maxAttempts ?? 3,
+        maxAttempts: req.body.maxAttempts ?? 5,
     };
 
     await prisma.job.create({
