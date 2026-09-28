@@ -3,17 +3,10 @@ import { ensureGroup, popJob, ackJob, pushJob, pushToDLQ } from "../../../packag
 import { randomUUID } from "crypto";
 import { prisma, connectDatabase } from "../../../packages/database/src/client.js";
 import {isRetryableError, RetryableError,} from "./errors.js";
+import { runHandler } from "./handler.js";
 
 const consumerName = `worker-${randomUUID()}`;
 
-
-async function processJob(job: any) {
-    console.log("Processing job:", job);
-
-    await new Promise((r) => setTimeout(r, 1000));
-
-    throw new Error("Invalid payload");
-}
 
 const sleep = (ms: number) =>
     new Promise(resolve => setTimeout(resolve, ms));
@@ -36,6 +29,7 @@ async function startWorker(){
 
     while (true) {
         const result = await popJob(consumerName);
+        console.log(`Worker ${consumerName} received job:`, result);
 
         if (!result) continue;
 
@@ -51,7 +45,7 @@ async function startWorker(){
         
 
         try {
-            const output = await processJob(job);
+            const output = await runHandler(job);
             await prisma.job.update({
                 where: { id: job.id },
                 data: { status: "COMPLETED", result: output },

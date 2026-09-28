@@ -13,6 +13,7 @@ app.post("/api/jobs", async (req, res) => {
         id: randomUUID(),
         type: req.body.type,
         payload: req.body.payload,
+        behavior: req.body.behavior ?? "success",   // new
         attempts: 0,
         maxAttempts: req.body.maxAttempts ?? 5,
     };
