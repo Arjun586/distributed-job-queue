@@ -527,6 +527,11 @@ To run multiple worker containers:
 docker compose up --build --scale worker=3
 ```
 
+Run to migrate DB
+```bash
+docker compose exec api npx prisma migrate deploy
+```
+
 View worker logs:
 
 ```bash

@@ -5,6 +5,9 @@ import { pushJob, ensureGroup } from "../../../packages/queue/src/index.js";
 import { prisma, connectDatabase } from "../../../packages/database/src/client.js";
 import "dotenv/config";
 
+
+
+
 const app = express();
 app.use(express.json());
 
@@ -33,6 +36,17 @@ app.get("/api/jobs/:id", async (req, res) => {
     const job = await prisma.job.findUnique({ where: { id: req.params.id } });
     if (!job) return res.status(404).json({ error: "Job not found" });
     res.json(job);
+});
+
+app.get("/api/jobs", async (req, res) => {
+    const jobs = await prisma.job.findMany({
+        orderBy: {
+            createdAt: "desc",
+        },
+        take: 50,
+    });
+
+    res.json(jobs);
 });
 
 app.listen(3000, async () => {

@@ -30,11 +30,13 @@ async function workerLoop() {
 
         const { job, streamId } = result;
 
+        const currentAttempt = job.attempts + 1;
+
         await prisma.job.update({
             where: { id: job.id },
             data: {
                 status: "PROCESSING",
-                attempts: { increment: 1 },
+                attempts: currentAttempt,
             },
         });
 
@@ -54,7 +56,7 @@ async function workerLoop() {
             });
         } catch (err: any) {
             const retryable = isRetryableError(err);
-            const nextAttempt = job.attempts + 1;
+            const nextAttempt = currentAttempt;
             const shouldRetry =
                 retryable && nextAttempt < job.maxAttempts;
 
