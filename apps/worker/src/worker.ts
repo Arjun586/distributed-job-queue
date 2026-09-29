@@ -6,6 +6,7 @@ import {isRetryableError, RetryableError,} from "./errors.js";
 import { runHandler } from "./handler.js";
 
 const consumerName = `worker-${randomUUID()}`;
+const CONCURRENCY = 3;
 
 
 const sleep = (ms: number) =>
@@ -20,13 +21,7 @@ function getRetryDelay(attempt: number) {
     return exponentialDelay + jitter;
 }
 
-async function startWorker(){
-    await connectRedis();
-    await connectDatabase();
-    await ensureGroup();
-
-    console.log(`Worker started as ${consumerName}, waiting for jobs...`);
-
+async function workerLoop() {
     while (true) {
         const result = await popJob(consumerName);
         console.log(`Worker ${consumerName} received job:`, result);
@@ -37,29 +32,40 @@ async function startWorker(){
 
         await prisma.job.update({
             where: { id: job.id },
-            data: { 
+            data: {
                 status: "PROCESSING",
                 attempts: { increment: 1 },
             },
         });
-        
 
         try {
+            console.log(`Worker ${consumerName} started processing job ${job.id}`);
+
             const output = await runHandler(job);
+            
+            console.log(`Worker ${consumerName} finished processing job ${job.id}`);
+
             await prisma.job.update({
                 where: { id: job.id },
-                data: { status: "COMPLETED", result: output },
+                data: {
+                    status: "COMPLETED",
+                    result: output,
+                },
             });
         } catch (err: any) {
-
             const retryable = isRetryableError(err);
             const nextAttempt = job.attempts + 1;
-
-            const shouldRetry = retryable && nextAttempt < job.maxAttempts;
+            const shouldRetry =
+                retryable && nextAttempt < job.maxAttempts;
 
             console.log(
-                `Job ${job.id} ${shouldRetry ? "will retry" : "has reached max attempts and FAILED"}`
+                `Job ${job.id} ${
+                    shouldRetry
+                        ? "will retry"
+                        : "has reached max attempts and FAILED"
+                }`
             );
+
             await prisma.job.update({
                 where: { id: job.id },
                 data: {
@@ -81,7 +87,9 @@ async function startWorker(){
             if (shouldRetry) {
                 const delay = getRetryDelay(nextAttempt);
 
-                console.log(`Retrying job ${job.id} in ${Math.round(delay)}ms`);
+                console.log(
+                    `Retrying job ${job.id} in ${Math.round(delay)}ms`
+                );
 
                 await sleep(delay);
 
@@ -93,9 +101,26 @@ async function startWorker(){
 
             continue;
         }
-        
+
         await ackJob(streamId);
     }
+}
+
+async function startWorker() {
+    await connectRedis();
+    await connectDatabase();
+    await ensureGroup();
+
+    console.log(
+        `Worker started as ${consumerName} with concurrency=${CONCURRENCY}`
+    );
+
+    await Promise.all(
+        Array.from(
+            { length: CONCURRENCY },
+            () => workerLoop()
+        )
+    );
 }
 
 startWorker();
