@@ -12,7 +12,7 @@ build/
 
 # AI Development
 .agents/
-AGENT.md
+AGENTS.md
 
 # TypeScript
 *.tsbuildinfo

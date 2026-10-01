@@ -151,7 +151,7 @@ function App() {
     useEffect(() => {
         refreshJobs();
 
-        const interval = setInterval(refreshJobs, 1500);
+        const interval = setInterval(refreshJobs, 800);
 
         return () => clearInterval(interval);
     }, []);

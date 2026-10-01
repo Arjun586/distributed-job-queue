@@ -1,4 +1,4 @@
-import {redisClient} from "../../redis/src/client.js"
+import {redisClient, redisReaderClient} from "../../redis/src/client.js"
 
 const STREAM_KEY = "job_stream";
 const GROUP_NAME = "job_workers";
@@ -39,7 +39,7 @@ export async function pushToDLQ(
 
 // blocking read of one new job for this consumer
 export async function popJob(consumerName: string) {
-    const result = await redisClient.xReadGroup(
+    const result = await redisReaderClient.xReadGroup(
         GROUP_NAME,
         consumerName,
         [{ key: STREAM_KEY, id: ">" }],
