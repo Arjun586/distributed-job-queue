@@ -10,6 +10,10 @@ build/
 .env.local
 .env.*.local
 
+# AI Development
+.agents/
+AGENT.md
+
 # TypeScript
 *.tsbuildinfo
 
