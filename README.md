@@ -538,10 +538,18 @@ View worker logs:
 docker compose logs -f worker
 ```
 
-Submit test jobs using the helper script:
+Run everything manually:
+```bash
+npm run dev
+```
+
+Run frontend:
 
 ```bash
-node scripts/send-jobs.js
+cd apps/dashboard
+
+npm run dev
+
 ```
 
 ---
